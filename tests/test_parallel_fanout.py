@@ -1,7 +1,7 @@
 import asyncio
 import pytest
 
-from parallel_fanout import parallel_fanout
+from integration.parallel_fanout import parallel_fanout
 
 
 class ValidAuthorization:
