@@ -67,3 +67,13 @@ def test_invalid_concurrency_rejected():
             providers={"local": lambda _: asyncio.sleep(0)}, max_concurrency=0,
             authorization_verifier=lambda auth, task: auth.is_valid_for(task)
         ))
+
+
+def test_missing_crypto_verifier_denies_even_task_bound_object():
+    async def provider(payload):
+        return "must-not-run"
+    with pytest.raises(PermissionError, match="cryptographic verification"):
+        asyncio.run(parallel_fanout(
+            task_id="task-1", payload={}, authorization=ValidAuthorization(),
+            providers={"local": provider},
+        ))
