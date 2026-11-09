@@ -22,7 +22,8 @@ def test_missing_authorization_fails_before_provider_calls():
     with pytest.raises(PermissionError):
         asyncio.run(parallel_fanout(
             task_id="task-1", payload={"intent": "test"},
-            authorization=InvalidAuthorization(), providers={"local": provider}
+            authorization=InvalidAuthorization(), providers={"local": provider},
+            authorization_verifier=lambda _auth, _task: True
         ))
     assert called == []
 
@@ -36,6 +37,7 @@ def test_providers_fan_out_and_results_keep_provider_identity():
     results = asyncio.run(parallel_fanout(
         task_id="task-1", payload={"intent": "test"},
         authorization=ValidAuthorization(),
+        authorization_verifier=lambda auth, task: auth.is_valid_for(task),
         providers={"alpha": alpha, "beta": beta}, max_concurrency=2
     ))
     assert [r.provider_id for r in results] == ["alpha", "beta"]
@@ -50,6 +52,7 @@ def test_provider_failure_is_isolated():
     results = asyncio.run(parallel_fanout(
         task_id="task-1", payload={},
         authorization=ValidAuthorization(),
+        authorization_verifier=lambda auth, task: auth.is_valid_for(task),
         providers={"broken": broken, "healthy": healthy}
     ))
     assert results[0].status == "failed"
@@ -61,5 +64,6 @@ def test_invalid_concurrency_rejected():
     with pytest.raises(ValueError):
         asyncio.run(parallel_fanout(
             task_id="task-1", payload={}, authorization=ValidAuthorization(),
-            providers={"local": lambda _: asyncio.sleep(0)}, max_concurrency=0
+            providers={"local": lambda _: asyncio.sleep(0)}, max_concurrency=0,
+            authorization_verifier=lambda auth, task: auth.is_valid_for(task)
         ))
