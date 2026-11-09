@@ -34,6 +34,7 @@ async def parallel_fanout(
     providers: Mapping[str, Callable[[Mapping[str, Any]], Awaitable[Any]]],
     max_concurrency: int = 3,
     timeout_seconds: float = 30.0,
+    authorization_verifier: Callable[[Any, str], bool] | None = None,
 ) -> list[ProviderResult]:
     if not task_id or not isinstance(task_id, str):
         raise ValueError("task_id required")
@@ -41,6 +42,8 @@ async def parallel_fanout(
         raise PermissionError("GateAuthorization is required")
     if authorization.is_valid_for(task_id) is not True:
         raise PermissionError("missing, expired, or task-mismatched GateAuthorization")
+    if authorization_verifier is None or authorization_verifier(authorization, task_id) is not True:
+        raise PermissionError("GateAuthorization cryptographic verification failed")
     if not providers or len(providers) != len(set(providers)):
         raise ValueError("unique provider adapters required")
     if not 1 <= max_concurrency <= 16:
