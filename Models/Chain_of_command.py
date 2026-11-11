@@ -1439,7 +1439,9 @@ def main() -> int:
         )
 
         response = {
-            "ok": True,
+            # A successful routing decision is not successful provider execution.
+            "ok": bool(execution_status["executed"]),
+            "status": "EXECUTED" if execution_status["executed"] else "EXECUTION_BLOCKED",
 
             "request": request,
 
